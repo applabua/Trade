@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scalping Trading Bot</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightweight-charts/3.8.0/lightweight-charts.standalone.production.min.js"></script>
+    <title>Скальпинговый торговый бот</title>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.development.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; }
@@ -21,62 +21,55 @@
     <p id="signal"></p>
 
     <script>
-        const symbol = 'BTCUSDT';
-        const interval1m = '1m';
-        const interval5m = '5m';
-        const apiUrl = 'https://api.binance.com/api/v3/klines';
-        const wsUrl = `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_1m`;
+        document.addEventListener("DOMContentLoaded", function() {
+            if (typeof LightweightCharts === 'undefined') {
+                console.error('Ошибка: LightweightCharts не загрузился!');
+                return;
+            }
 
-        let chart1m = LightweightCharts.createChart(document.getElementById('chart-1m'), { width: 400, height: 400 });
-        let chart5m = LightweightCharts.createChart(document.getElementById('chart-5m'), { width: 400, height: 400 });
+            const symbol = 'BTCUSDT';
+            const interval1m = '1m';
+            const interval5m = '5m';
+            const binanceApiUrl = 'https://api.binance.com/api/v3/klines';
+            
+            let chart1m = LightweightCharts.createChart(document.getElementById('chart-1m'), { width: 400, height: 400 });
+            let chart5m = LightweightCharts.createChart(document.getElementById('chart-5m'), { width: 400, height: 400 });
+            
+            let candleSeries1m = chart1m.addCandlestickSeries();
+            let candleSeries5m = chart5m.addCandlestickSeries();
+            
+            function fetchData(interval, series) {
+                axios.get(binanceApiUrl, {
+                    params: { symbol, interval, limit: 50 }
+                }).then(response => {
+                    const data = response.data.map(d => ({
+                        time: d[0] / 1000,
+                        open: parseFloat(d[1]),
+                        high: parseFloat(d[2]),
+                        low: parseFloat(d[3]),
+                        close: parseFloat(d[4])
+                    }));
+                    series.setData(data);
+                    console.log(`Загружены данные для ${interval}`, data);
+                }).catch(error => {
+                    console.error(`Ошибка загрузки данных для ${interval}:`, error);
+                });
+            }
 
-        let candleSeries1m = chart1m.addCandlestickSeries();
-        let candleSeries5m = chart5m.addCandlestickSeries();
+            fetchData(interval1m, candleSeries1m);
+            fetchData(interval5m, candleSeries5m);
 
-        function fetchData(interval, series) {
-            axios.get(apiUrl, {
-                params: { symbol, interval, limit: 50 }
-            }).then(response => {
-                const data = response.data.map(d => ({
-                    time: d[0] / 1000,
-                    open: parseFloat(d[1]),
-                    high: parseFloat(d[2]),
-                    low: parseFloat(d[3]),
-                    close: parseFloat(d[4])
-                }));
-                series.setData(data);
-                console.log(`Загружены данные для ${interval}`, data);
-            }).catch(error => {
-                console.error(`Ошибка загрузки данных для ${interval}:`, error);
-            });
-        }
-
-        fetchData(interval1m, candleSeries1m);
-        fetchData(interval5m, candleSeries5m);
-
-        let ws = new WebSocket(wsUrl);
-        ws.onopen = () => console.log('WebSocket подключен');
-        ws.onerror = error => console.error('Ошибка WebSocket:', error);
-
-        ws.onmessage = event => {
-            let data = JSON.parse(event.data);
-            let k = data.k;
-            let newCandle = {
-                time: k.t / 1000,
-                open: parseFloat(k.o),
-                high: parseFloat(k.h),
-                low: parseFloat(k.l),
-                close: parseFloat(k.c)
-            };
-            candleSeries1m.update(newCandle);
-            analyzeData(newCandle.close);
-            console.log('Обновление свечи:', newCandle);
-        };
-
-        function analyzeData(price) {
-            let signalElement = document.getElementById('signal');
-            if (price > 45000) {
-                signalElement.innerText = '🔥 ЛОНГ! Цена выше 45000';
-            } else if (price < 44000) {
-                signalElement.innerText = '❄️ ШОРТ! Цена ниже 44000';
-            } else {
+            function analyzeData(price) {
+                let signalElement = document.getElementById('signal');
+                if (price > 45000) {
+                    signalElement.innerText = '🔥 ЛОНГ! Цена выше 45000';
+                } else if (price < 44000) {
+                    signalElement.innerText = '❄️ ШОРТ! Цена ниже 44000';
+                } else {
+                    signalElement.innerText = '⏳ Ожидание...';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
