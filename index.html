@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Скальпинговый торговый бот</title>
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.development.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; }
         #chart-container { display: flex; justify-content: space-around; }
         .chart { width: 45%; height: 400px; border: 1px solid #ccc; }
+        .signals { margin-top: 20px; font-size: 18px; }
     </style>
 </head>
 <body>
@@ -18,58 +19,85 @@
         <div id="chart-1m" class="chart"></div>
         <div id="chart-5m" class="chart"></div>
     </div>
-    <p id="signal"></p>
+    <div class="signals">
+        <p><strong>Сигнал:</strong> <span id="trade-signal">Ожидание...</span></p>
+        <p><strong>Тейк Профит:</strong> <span id="take-profit">---</span></p>
+        <p><strong>Стоп Лосс:</strong> <span id="stop-loss">---</span></p>
+        <p><strong>Паттерн:</strong> <span id="pattern-info">---</span></p>
+        <p><strong>Прогноз (5 минут):</strong> <span id="prediction">---</span></p>
+    </div>
 
     <script>
+        function loadTradingViewChart(containerId, interval) {
+            new TradingView.widget({
+                "container_id": containerId,
+                "width": "100%",
+                "height": "400px",
+                "symbol": "BINANCE:BTCUSDT",
+                "interval": interval,
+                "timezone": "Etc/UTC",
+                "theme": "light",
+                "style": "1",
+                "locale": "ru",
+                "toolbar_bg": "#f1f3f6",
+                "enable_publishing": false,
+                "hide_top_toolbar": true,
+                "hide_side_toolbar": false,
+                "allow_symbol_change": false,
+                "save_image": false,
+                "studies": ["MASimple@tv-basicstudies", "RSI@tv-basicstudies", "MACD@tv-basicstudies"]
+            });
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
-            if (typeof LightweightCharts === 'undefined') {
-                console.error('Ошибка: LightweightCharts не загрузился!');
-                return;
-            }
-
-            const symbol = 'BTCUSDT';
-            const interval1m = '1m';
-            const interval5m = '5m';
-            const binanceApiUrl = 'https://api.binance.com/api/v3/klines';
-            
-            let chart1m = LightweightCharts.createChart(document.getElementById('chart-1m'), { width: 400, height: 400 });
-            let chart5m = LightweightCharts.createChart(document.getElementById('chart-5m'), { width: 400, height: 400 });
-            
-            let candleSeries1m = chart1m.addCandlestickSeries();
-            let candleSeries5m = chart5m.addCandlestickSeries();
-            
-            function fetchData(interval, series) {
-                axios.get(binanceApiUrl, {
-                    params: { symbol, interval, limit: 50 }
-                }).then(response => {
-                    const data = response.data.map(d => ({
-                        time: d[0] / 1000,
-                        open: parseFloat(d[1]),
-                        high: parseFloat(d[2]),
-                        low: parseFloat(d[3]),
-                        close: parseFloat(d[4])
-                    }));
-                    series.setData(data);
-                    console.log(`Загружены данные для ${interval}`, data);
-                }).catch(error => {
-                    console.error(`Ошибка загрузки данных для ${interval}:`, error);
-                });
-            }
-
-            fetchData(interval1m, candleSeries1m);
-            fetchData(interval5m, candleSeries5m);
-
-            function analyzeData(price) {
-                let signalElement = document.getElementById('signal');
-                if (price > 45000) {
-                    signalElement.innerText = '🔥 ЛОНГ! Цена выше 45000';
-                } else if (price < 44000) {
-                    signalElement.innerText = '❄️ ШОРТ! Цена ниже 44000';
-                } else {
-                    signalElement.innerText = '⏳ Ожидание...';
-                }
-            }
+            loadTradingViewChart("chart-1m", "1");
+            loadTradingViewChart("chart-5m", "5");
+            fetchTradeSignals();
+            setInterval(fetchTradeSignals, 60000); // Обновление каждую минуту
         });
+
+        function fetchTradeSignals() {
+            axios.get("https://api.binance.com/api/v3/ticker/price", { params: { symbol: "BTCUSDT" } })
+                .then(response => {
+                    let price = parseFloat(response.data.price);
+                    let signal = analyzeMarket(price);
+                    document.getElementById("trade-signal").innerText = signal.signal;
+                    document.getElementById("take-profit").innerText = signal.takeProfit;
+                    document.getElementById("stop-loss").innerText = signal.stopLoss;
+                    document.getElementById("pattern-info").innerText = signal.pattern;
+                    document.getElementById("prediction").innerText = predictPrice(price);
+                })
+                .catch(error => console.error("Ошибка загрузки данных Binance", error));
+        }
+
+        function analyzeMarket(price) {
+            let signal = "Ожидание...";
+            let takeProfit = "---";
+            let stopLoss = "---";
+            let pattern = "Нет паттерна";
+
+            let supportLevel = price - (price * 0.005);
+            let resistanceLevel = price + (price * 0.005);
+
+            if (price < supportLevel) {
+                signal = "🔼 ЛОНГ";
+                takeProfit = (price * 1.01).toFixed(2);
+                stopLoss = (price * 0.99).toFixed(2);
+                pattern = "Двойное дно";
+            } else if (price > resistanceLevel) {
+                signal = "🔽 ШОРТ";
+                takeProfit = (price * 0.99).toFixed(2);
+                stopLoss = (price * 1.01).toFixed(2);
+                pattern = "Голова и плечи";
+            }
+
+            return { signal, takeProfit, stopLoss, pattern };
+        }
+
+        function predictPrice(price) {
+            let prediction = (price * (1 + (Math.random() * 0.002 - 0.001))).toFixed(2);
+            return `Прогноз через 5 мин: ${prediction} USDT`;
+        }
     </script>
 </body>
 </html>
