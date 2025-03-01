@@ -2,70 +2,54 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Онлайн Скринер BTC/USDT — Всё в одном</title>
+  <title>BTC/USDT — Стакан + 2 TradingView (1m & 5m) + Очень Крупные Ордера</title>
   <style>
-    /* Базовые стили, фон */
     body {
       margin: 0;
       padding: 0;
       font-family: Arial, sans-serif;
-      background: linear-gradient(to bottom, #e9ecef, #cfd3d6);
+      background: #f0f0f0;
+    }
+    header {
+      text-align: center;
+      background: #fff;
+      padding: 15px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    h1 {
+      margin: 0;
+      font-size: 24px;
     }
     .container {
       width: 95%;
       max-width: 1400px;
       margin: 0 auto;
-      padding: 20px;
-    }
-    .header {
-      text-align: center;
-      margin-bottom: 20px;
-      font-size: 26px;
-      font-weight: bold;
+      padding: 10px;
     }
 
-    /* Кнопки */
-    .button-bar {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .button-bar button {
-      background-color: #007bff;
-      color: #fff;
-      border: none;
-      padding: 10px 20px;
-      margin: 5px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background-color 0.3s;
-    }
-    .button-bar button:hover {
-      background-color: #0056b3;
-    }
-
-    /* Блоки для стаканов */
+    /* Стакан */
     .order-book {
       display: flex;
-      flex-wrap: wrap;
       justify-content: space-around;
+      flex-wrap: wrap;
       margin-bottom: 20px;
     }
     .book {
-      background-color: #fff;
-      border-radius: 8px;
-      padding: 10px;
       width: 45%;
       min-width: 300px;
+      background: #fff;
       border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       max-height: 400px;
       overflow-y: auto;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       margin-bottom: 20px;
     }
     .book h2 {
-      margin-top: 0;
       text-align: center;
+      margin-top: 0;
     }
     .order {
       display: flex;
@@ -86,148 +70,46 @@
       font-weight: 600;
     }
 
-    /* Сигнал */
-    .signal {
+    /* Контейнеры для TradingView */
+    .tv-container {
+      position: relative; /* для наложения canvas */
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .tv-container h2 {
       text-align: center;
-      font-size: 24px;
-      margin-bottom: 20px;
-      padding: 10px;
-      border-radius: 8px;
-      background-color: #fff;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      border: 1px solid #ccc;
-      transition: color 0.3s;
-    }
-
-    /* График Chart.js */
-    #chartContainer {
-      background-color: #fff;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-    #chartContainer h2 {
       margin-top: 0;
-      text-align: center;
     }
-    #priceChart {
+    .tradingview-widget-container {
       width: 100%;
-      height: 500px; /* можно подстроить */
-    }
-
-    /* Блок сессий торговли */
-    #sessionsContainer {
-      background-color: #fff;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-    #sessionsContainer h2 {
-      margin-top: 0;
-      text-align: center;
-    }
-    #sessionsTable {
-      width: 100%;
-      border-collapse: collapse;
       margin: 0 auto;
-      text-align: center;
-    }
-    #sessionsTable th, #sessionsTable td {
-      border: 1px solid #ccc;
-      padding: 8px;
-    }
-    .session-open {
-      background-color: #c8ffc8; /* зеленоватый фон, если сессия открыта */
+      position: relative;
     }
 
-    /* Блок важных новостей (CryptoCompare) */
-    #newsContainer {
-      background-color: #fff;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-    #newsContainer h2 {
-      margin-top: 0;
-      text-align: center;
-    }
-    .news-item {
-      margin-bottom: 10px;
-      padding-bottom: 10px;
-      border-bottom: 1px dashed #ccc;
-    }
-    .news-item:last-child {
-      border-bottom: none;
-    }
-
-    /* Блок Fear & Greed */
-    #fearGreedContainer {
-      background-color: #fff;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-    #fearGreedContainer h2 {
-      margin-top: 0;
-      text-align: center;
-    }
-
-    /* Блок CoinGecko Global */
-    #coingeckoGlobalContainer {
-      background-color: #fff;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-    #coingeckoGlobalContainer h2 {
-      margin-top: 0;
-      text-align: center;
-    }
-
-    /* Блок CoinGecko Events */
-    #coingeckoEventsContainer {
-      background-color: #fff;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-    #coingeckoEventsContainer h2 {
-      margin-top: 0;
-      text-align: center;
-    }
-    .event-item {
-      margin-bottom: 10px;
-      padding-bottom: 10px;
-      border-bottom: 1px dashed #ccc;
-    }
-    .event-item:last-child {
-      border-bottom: none;
+    /* Canvas поверх виджета */
+    .overlay-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none; /* клики проходят насквозь */
+      z-index: 10;
     }
   </style>
 </head>
 <body>
+  <header>
+    <h1>BTC/USDT — Стакан, 2 TradingView (1m и 5m), Только Очень Крупные Ордера</h1>
+    <p style="font-size: 14px; color: #666; margin: 5px 0;">
+      (Линии <strong>не будут</strong> «фиксироваться» при масштабировании, т.к. это обычный Embed‑виджет.)
+    </p>
+  </header>
+
   <div class="container">
-    <div class="header">Онлайн Скринер BTC/USDT — Всё в одном</div>
-
-    <!-- Кнопки управления -->
-    <div class="button-bar">
-      <button id="pauseBtn">Пауза обновлений</button>
-      <button id="resumeBtn" disabled>Возобновить обновления</button>
-    </div>
-
-    <!-- Стаканы ордеров -->
+    <!-- Стакан -->
     <div class="order-book">
       <div class="book" id="bids">
         <h2>Покупки (Bids)</h2>
@@ -239,572 +121,264 @@
       </div>
     </div>
 
-    <!-- Торговый сигнал -->
-    <div class="signal" id="tradeSignal">Сигнал: Нет данных</div>
-
-    <!-- Контейнер с графиком Chart.js -->
-    <div id="chartContainer">
-      <h2>График (Реальное время) + Линии Крупных Ордеров</h2>
-      <canvas id="priceChart"></canvas>
+    <!-- TradingView 1-min -->
+    <div class="tv-container" id="tv1minContainer">
+      <h2>TradingView (1m)</h2>
+      <div class="tradingview-widget-container">
+        <div id="tradingview_1min"></div>
+      </div>
+      <!-- canvas поверх -->
+      <canvas id="overlayCanvas1" class="overlay-canvas"></canvas>
     </div>
 
-    <!-- Блок сессий торговли (UTC + в скобках Киевское время) -->
-    <div id="sessionsContainer">
-      <h2>Сессии Торговли (UTC) <br/> <small>в скобках — время по Киеву</small></h2>
-      <table id="sessionsTable">
-        <thead>
-          <tr>
-            <th>Сессия</th>
-            <th>Время (UTC)</th>
-            <th>Статус (UTC)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr id="session-sydney">
-            <td>Sydney</td>
-            <td>22:00 - 07:00 (<span class="kievTime"></span>)</td>
-            <td>Закрыто</td>
-          </tr>
-          <tr id="session-tokyo">
-            <td>Tokyo</td>
-            <td>00:00 - 09:00 (<span class="kievTime"></span>)</td>
-            <td>Закрыто</td>
-          </tr>
-          <tr id="session-london">
-            <td>London</td>
-            <td>07:00 - 16:00 (<span class="kievTime"></span>)</td>
-            <td>Закрыто</td>
-          </tr>
-          <tr id="session-ny">
-            <td>New York</td>
-            <td>12:00 - 21:00 (<span class="kievTime"></span>)</td>
-            <td>Закрыто</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Блок важных новостей (CryptoCompare) -->
-    <div id="newsContainer">
-      <h2>Важные Новости (CryptoCompare)</h2>
-      <div id="newsList">Загрузка новостей...</div>
-    </div>
-
-    <!-- Блок Fear & Greed Index -->
-    <div id="fearGreedContainer">
-      <h2>Crypto Fear & Greed Index</h2>
-      <div id="fearGreedData">Загрузка...</div>
-    </div>
-
-    <!-- Блок CoinGecko Global -->
-    <div id="coingeckoGlobalContainer">
-      <h2>Глобальные Данные (CoinGecko)</h2>
-      <div id="coingeckoGlobalData">Загрузка...</div>
-    </div>
-
-    <!-- Блок CoinGecko Events -->
-    <div id="coingeckoEventsContainer">
-      <h2>События (CoinGecko Events)</h2>
-      <div id="coingeckoEventsList">Загрузка...</div>
+    <!-- TradingView 5-min -->
+    <div class="tv-container" id="tv5minContainer">
+      <h2>TradingView (5m)</h2>
+      <div class="tradingview-widget-container">
+        <div id="tradingview_5min"></div>
+      </div>
+      <!-- canvas поверх -->
+      <canvas id="overlayCanvas5" class="overlay-canvas"></canvas>
     </div>
   </div>
 
-  <!-- Подключаем библиотеки Chart.js, streaming и annotation -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0/dist/chartjs-plugin-streaming.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.1.0/dist/chartjs-plugin-annotation.min.js"></script>
+  <!-- TradingView script -->
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 
   <script>
-    // ====================== НАСТРОЙКИ ======================
-    // Порог для выделения «большого» ордера в стакане (подсветка)
-    const VOLUME_THRESHOLD = 1.0;
-    // Порог для «очень крупного» ордера, чтобы рисовать горизонтальные линии на графике
-    const LARGE_ORDER_THRESHOLD = 5.0;
-    // Предполагаем, что в Киеве сейчас UTC+3 (при необходимости меняйте)
-    const KIEV_OFFSET = 3;
+    // ---- НАСТРОЙКИ ----
+    const VOLUME_THRESHOLD = 1.0;         // Подсветка в списке (стакане)
+    const EXTRA_LARGE_THRESHOLD = 20.0;   // "Очень крупные" ордера (рисуем только их)
 
-    // Глобальный объект книги ордеров
-    const orderBook = {
-      bids: {},
-      asks: {}
-    };
     let lastUpdateId = null;
+    const orderBook = { bids: {}, asks: {} };
 
-    // Флаг паузы
-    let isPaused = false;
-
-    // ====================== СТАКАН (Order Book) ======================
-    async function initOrderBook() {
-      try {
-        const response = await fetch('https://api.binance.com/api/v3/depth?symbol=BTCUSDT&limit=20');
-        const data = await response.json();
-        lastUpdateId = data.lastUpdateId;
-        data.bids.forEach(order => {
-          orderBook.bids[order[0]] = parseFloat(order[1]);
-        });
-        data.asks.forEach(order => {
-          orderBook.asks[order[0]] = parseFloat(order[1]);
-        });
-        updateOrderBookDisplay();
-      } catch (error) {
-        console.error('Ошибка инициализации книги ордеров:', error);
-      }
+    // ====================== TRADINGVIEW (Embed) ======================
+    function initTV1min() {
+      new TradingView.widget({
+        "width": "100%",
+        "height": 500,
+        "symbol": "BINANCE:BTCUSDT",
+        "interval": "1",
+        "timezone": "Etc/UTC",
+        "theme": "light",
+        "style": "1", // свечи
+        "locale": "ru",
+        "toolbar_bg": "#f1f3f6",
+        "enable_publishing": false,
+        "withdateranges": false,
+        "hide_side_toolbar": true,
+        "allow_symbol_change": false,
+        "save_image": false,
+        "container_id": "tradingview_1min"
+      });
     }
 
-    function updateOrderBookDisplay() {
-      if (isPaused) return; // если пауза, не обновляем
+    function initTV5min() {
+      new TradingView.widget({
+        "width": "100%",
+        "height": 500,
+        "symbol": "BINANCE:BTCUSDT",
+        "interval": "5",
+        "timezone": "Etc/UTC",
+        "theme": "light",
+        "style": "1",
+        "locale": "ru",
+        "toolbar_bg": "#f1f3f6",
+        "enable_publishing": false,
+        "withdateranges": false,
+        "hide_side_toolbar": true,
+        "allow_symbol_change": false,
+        "save_image": false,
+        "container_id": "tradingview_5min"
+      });
+    }
 
+    // ====================== СТАКАН ======================
+    function updateOrderBookDisplay() {
       const bidsList = document.getElementById('bidsList');
       const asksList = document.getElementById('asksList');
+      if (!bidsList || !asksList) return;
+
       bidsList.innerHTML = '';
       asksList.innerHTML = '';
 
       let bids = [];
-      for (let price in orderBook.bids) {
-        bids.push([parseFloat(price), orderBook.bids[price]]);
+      for (let p in orderBook.bids) {
+        bids.push([parseFloat(p), orderBook.bids[p]]);
       }
       let asks = [];
-      for (let price in orderBook.asks) {
-        asks.push([parseFloat(price), orderBook.asks[price]]);
+      for (let p in orderBook.asks) {
+        asks.push([parseFloat(p), orderBook.asks[p]]);
       }
 
-      // Сортировка: покупок — по убыванию цены, продаж — по возрастанию
-      bids.sort((a, b) => b[0] - a[0]);
-      asks.sort((a, b) => a[0] - b[0]);
+      // сортируем
+      bids.sort((a,b) => b[0] - a[0]);
+      asks.sort((a,b) => a[0] - b[0]);
 
-      let totalBidVolume = 0, totalAskVolume = 0;
-
-      // Топ-20 bid
-      bids.slice(0, 20).forEach(order => {
-        totalBidVolume += order[1];
-        const orderDiv = document.createElement('div');
-        orderDiv.classList.add('order');
-        if (order[1] >= VOLUME_THRESHOLD) {
-          orderDiv.classList.add('buy');
-        }
-        orderDiv.textContent = `Цена: ${order[0].toFixed(2)} | Кол-во: ${order[1]}`;
-        bidsList.appendChild(orderDiv);
+      // выводим топ-20
+      bids.slice(0, 20).forEach(([price, qty]) => {
+        const div = document.createElement('div');
+        div.classList.add('order');
+        if (qty >= VOLUME_THRESHOLD) div.classList.add('buy');
+        div.textContent = `Цена: ${price.toFixed(2)} | Кол-во: ${qty}`;
+        bidsList.appendChild(div);
       });
-
-      // Топ-20 ask
-      asks.slice(0, 20).forEach(order => {
-        totalAskVolume += order[1];
-        const orderDiv = document.createElement('div');
-        orderDiv.classList.add('order');
-        if (order[1] >= VOLUME_THRESHOLD) {
-          orderDiv.classList.add('sell');
-        }
-        orderDiv.textContent = `Цена: ${order[0].toFixed(2)} | Кол-во: ${order[1]}`;
-        asksList.appendChild(orderDiv);
-      });
-
-      // Сигнал
-      const signalDiv = document.getElementById('tradeSignal');
-      if (totalBidVolume > totalAskVolume * 1.1) {
-        signalDiv.textContent = 'Сигнал: ПОКУПКА';
-        signalDiv.style.color = 'green';
-      } else if (totalAskVolume > totalBidVolume * 1.1) {
-        signalDiv.textContent = 'Сигнал: ПРОДАЖА';
-        signalDiv.style.color = 'red';
-      } else {
-        signalDiv.textContent = 'Сигнал: НЕТ СИГНАЛА';
-        signalDiv.style.color = 'black';
-      }
-
-      // Обновляем линии крупных ордеров на графике
-      updateLargeOrderAnnotations();
-    }
-
-    // Подключаемся к WebSocket Binance Depth
-    const depthSocket = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@depth');
-    depthSocket.onmessage = function(event) {
-      if (isPaused) return; // при паузе игнорируем
-      const data = JSON.parse(event.data);
-      // Пропускаем, если обновление старее, чем текущий snapshot
-      if (data.u <= lastUpdateId) return;
-
-      // Обновляем bids
-      data.b.forEach(bid => {
-        const price = bid[0];
-        const qty = parseFloat(bid[1]);
-        if (qty === 0) {
-          delete orderBook.bids[price];
-        } else {
-          orderBook.bids[price] = qty;
-        }
-      });
-
-      // Обновляем asks
-      data.a.forEach(ask => {
-        const price = ask[0];
-        const qty = parseFloat(ask[1]);
-        if (qty === 0) {
-          delete orderBook.asks[price];
-        } else {
-          orderBook.asks[price] = qty;
-        }
-      });
-
-      lastUpdateId = data.u;
-      updateOrderBookDisplay();
-    };
-
-    // ====================== ГРАФИК (Chart.js) ======================
-    let priceChart;
-    function initPriceChart() {
-      const ctx = document.getElementById('priceChart').getContext('2d');
-
-      priceChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          datasets: [{
-            label: 'BTC/USDT (Last Trade Price)',
-            data: [],
-            borderColor: 'blue',
-            backgroundColor: 'rgba(0, 0, 255, 0.1)',
-            fill: true,
-            tension: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            x: {
-              type: 'realtime', // ось времени в реальном времени
-              realtime: {
-                duration: 60000,  // показываем последние 60 секунд
-                refresh: 1000,    // обновление раз в секунду
-                delay: 2000,      // задержка (чтобы не скакало)
-                onRefresh: function(chart) {
-                  // Данные приходят через WebSocket ниже
-                }
-              },
-              title: {
-                display: true,
-                text: 'Время'
-              }
-            },
-            y: {
-              title: {
-                display: true,
-                text: 'Цена (USDT)'
-              },
-              beginAtZero: false
-            }
-          },
-          plugins: {
-            // Плагин для аннотаций (линий крупных ордеров)
-            annotation: {
-              annotations: {}
-            }
-          }
-        }
+      asks.slice(0, 20).forEach(([price, qty]) => {
+        const div = document.createElement('div');
+        div.classList.add('order');
+        if (qty >= VOLUME_THRESHOLD) div.classList.add('sell');
+        div.textContent = `Цена: ${price.toFixed(2)} | Кол-во: ${qty}`;
+        asksList.appendChild(div);
       });
     }
 
-    // WebSocket для получения трейдов (для графика)
-    const tradeSocket = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
-    tradeSocket.onmessage = function(event) {
-      if (!priceChart) return;
-      if (isPaused) return; // при паузе не добавляем новые точки
+    // ====================== ЛИНИИ ДЛЯ ОЧЕНЬ КРУПНЫХ ОРДЕРОВ ======================
+    // Рисуем только те ордера, у которых volume >= EXTRA_LARGE_THRESHOLD
+    function drawExtraLargeOrders(overlayCanvas) {
+      // Определяем размеры canvas = размер блока с виджетом
+      const parent = overlayCanvas.parentElement.querySelector('.tradingview-widget-container');
+      if (!parent) return;
 
-      const trade = JSON.parse(event.data);
-      const price = parseFloat(trade.p);
+      const rect = parent.getBoundingClientRect();
+      overlayCanvas.width = rect.width;
+      overlayCanvas.height = rect.height;
 
-      // Добавляем новую точку (x=текущее время, y=цена)
-      priceChart.data.datasets[0].data.push({
-        x: Date.now(),
-        y: price
-      });
-      // Обновляем график «без анимации»
-      priceChart.update('none');
-    };
+      const ctx = overlayCanvas.getContext('2d');
+      ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
-    // Рисуем линии для крупных ордеров
-    function updateLargeOrderAnnotations() {
-      if (!priceChart) return;
-
-      // Сначала очистим все аннотации
-      priceChart.options.plugins.annotation.annotations = {};
-
-      let annCounter = 1;
+      // Найдём minPrice и maxPrice среди всех bids/asks
+      let minP = Infinity, maxP = -Infinity;
+      for (let p in orderBook.bids) {
+        const pp = parseFloat(p);
+        if (pp < minP) minP = pp;
+        if (pp > maxP) maxP = pp;
+      }
+      for (let p in orderBook.asks) {
+        const pp = parseFloat(p);
+        if (pp < minP) minP = pp;
+        if (pp > maxP) maxP = pp;
+      }
+      if (minP === Infinity || maxP === -Infinity) return; // пусто
 
       // BIDS
       for (let priceStr in orderBook.bids) {
         const vol = orderBook.bids[priceStr];
-        if (vol >= LARGE_ORDER_THRESHOLD) {
+        if (vol >= EXTRA_LARGE_THRESHOLD) {
           const price = parseFloat(priceStr);
-          const annId = `bid_${annCounter}`;
-          priceChart.options.plugins.annotation.annotations[annId] = {
-            type: 'line',
-            yMin: price,
-            yMax: price,
-            borderColor: 'green',
-            borderWidth: 2,
-            label: {
-              enabled: true,
-              content: `BID ${price.toFixed(2)} / ${vol.toFixed(2)}`,
-              position: 'start',
-              backgroundColor: 'rgba(0,128,0,0.2)'
-            }
-          };
-          annCounter++;
+          const y = mapPriceToY(price, minP, maxP, overlayCanvas.height);
+          ctx.strokeStyle = 'green';
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(overlayCanvas.width, y);
+          ctx.stroke();
+
+          ctx.fillStyle = 'green';
+          ctx.fillText(`BID ${price.toFixed(2)} (${vol.toFixed(2)})`, 5, y - 3);
         }
       }
 
       // ASKS
       for (let priceStr in orderBook.asks) {
         const vol = orderBook.asks[priceStr];
-        if (vol >= LARGE_ORDER_THRESHOLD) {
+        if (vol >= EXTRA_LARGE_THRESHOLD) {
           const price = parseFloat(priceStr);
-          const annId = `ask_${annCounter}`;
-          priceChart.options.plugins.annotation.annotations[annId] = {
-            type: 'line',
-            yMin: price,
-            yMax: price,
-            borderColor: 'red',
-            borderWidth: 2,
-            label: {
-              enabled: true,
-              content: `ASK ${price.toFixed(2)} / ${vol.toFixed(2)}`,
-              position: 'start',
-              backgroundColor: 'rgba(255,0,0,0.2)'
-            }
-          };
-          annCounter++;
+          const y = mapPriceToY(price, minP, maxP, overlayCanvas.height);
+          ctx.strokeStyle = 'red';
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(overlayCanvas.width, y);
+          ctx.stroke();
+
+          ctx.fillStyle = 'red';
+          ctx.fillText(`ASK ${price.toFixed(2)} (${vol.toFixed(2)})`, 5, y - 3);
         }
       }
-
-      // Обновляем график
-      priceChart.update('none');
     }
 
-    // ====================== СЕССИИ ТОРГОВЛИ (UTC + Киев) ======================
-    // Упрощённые часы (UTC):
-    // Sydney: 22:00 - 07:00
-    // Tokyo:  00:00 - 09:00
-    // London: 07:00 - 16:00
-    // NY:     12:00 - 21:00
-    // Мы добавим в скобках — перевод на Киевское время (UTC+3)
-    const sessions = [
-      { id: 'session-sydney', name: 'Sydney', open: 22, close: 7 },
-      { id: 'session-tokyo',  name: 'Tokyo',  open: 0,  close: 9 },
-      { id: 'session-london', name: 'London', open: 7,  close: 16 },
-      { id: 'session-ny',     name: 'New York', open: 12, close: 21 }
-    ];
-
-    function convertUtcHourToKiev(utcHour) {
-      // наивный перевод: (utcHour + KIEV_OFFSET) % 24
-      return (utcHour + KIEV_OFFSET + 24) % 24; 
+    // Переводим price -> y (линейно, без учёта реального масштаба TradingView)
+    function mapPriceToY(price, minP, maxP, height) {
+      if (maxP <= minP) return height/2;
+      // Чем выше price, тем выше Y, но canvas растёт вниз
+      return (maxP - price)/(maxP - minP)*height;
     }
 
-    function formatHour(h) {
-      // Возвращаем строку вида "07:00"
-      return (h < 10 ? '0' : '') + h + ':00';
+    function updateAllOverlays() {
+      const c1 = document.getElementById('overlayCanvas1');
+      const c2 = document.getElementById('overlayCanvas5');
+      if (c1) drawExtraLargeOrders(c1);
+      if (c2) drawExtraLargeOrders(c2);
     }
 
-    function updateSessions() {
-      const now = new Date();
-      const utcHour = now.getUTCHours(); // час в UTC (0..23)
-
-      sessions.forEach(s => {
-        const row = document.getElementById(s.id);
-        row.classList.remove('session-open');
-
-        // Запишем время для Киева
-        const openKiev = convertUtcHourToKiev(s.open);
-        const closeKiev = convertUtcHourToKiev(s.close);
-
-        // Найдём span.kievTime внутри ячейки
-        const kievSpan = row.querySelector('.kievTime');
-        if (kievSpan) {
-          kievSpan.textContent = `${formatHour(openKiev)} - ${formatHour(closeKiev)}`;
-        }
-
-        let isOpen = false;
-        if (s.open < s.close) {
-          // Простой случай: open=7, close=16 => 7..15
-          if (utcHour >= s.open && utcHour < s.close) {
-            isOpen = true;
-          }
-        } else {
-          // Сессия через полночь (например, 22..7)
-          if (utcHour >= s.open || utcHour < s.close) {
-            isOpen = true;
-          }
-        }
-
-        // Устанавливаем статус
-        const statusCell = row.getElementsByTagName('td')[2];
-        if (isOpen) {
-          row.classList.add('session-open');
-          statusCell.textContent = 'Открыто';
-        } else {
-          statusCell.textContent = 'Закрыто';
-        }
-      });
-    }
-
-    // ====================== Блок Важных Новостей (CryptoCompare) ======================
-    async function fetchNews() {
-      const newsList = document.getElementById('newsList');
+    // ====================== REST: ИНИЦИАЛИЗАЦИЯ СТАКАНА ======================
+    async function initOrderBook() {
       try {
-        const resp = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN');
+        const resp = await fetch('https://api.binance.com/api/v3/depth?symbol=BTCUSDT&limit=20');
         const data = await resp.json();
-        if (!data.Data) {
-          newsList.innerHTML = 'Не удалось получить новости (API может требовать ключ).';
-          return;
-        }
-        // Покажем первые 10 новостей
-        const items = data.Data.slice(0, 10);
-        let html = '';
-        items.forEach(item => {
-          html += `
-            <div class="news-item">
-              <strong>${item.source}:</strong> 
-              <a href="${item.url}" target="_blank">${item.title}</a>
-              <div style="font-size: 13px; margin-top: 5px;">${item.body}</div>
-            </div>
-          `;
+        lastUpdateId = data.lastUpdateId;
+
+        data.bids.forEach(b => {
+          orderBook.bids[b[0]] = parseFloat(b[1]);
         });
-        newsList.innerHTML = html;
-      } catch (err) {
-        console.error('Ошибка при загрузке новостей:', err);
-        newsList.innerHTML = 'Ошибка при загрузке новостей.';
-      }
-    }
-
-    // ====================== Fear & Greed Index (alternative.me) ======================
-    async function fetchFearGreed() {
-      const fgData = document.getElementById('fearGreedData');
-      try {
-        const resp = await fetch('https://api.alternative.me/fng/?limit=1&format=json');
-        const data = await resp.json();
-        if (!data.data || data.data.length === 0) {
-          fgData.innerHTML = 'Нет данных Fear & Greed.';
-          return;
-        }
-        const current = data.data[0];
-        // current.value, current.value_classification
-        fgData.innerHTML = `
-          <p>Текущее значение: <strong>${current.value}</strong></p>
-          <p>Классификация: <strong>${current.value_classification}</strong></p>
-          <p>Обновлено: ${new Date(current.timestamp * 1000).toLocaleString()}</p>
-        `;
-      } catch (err) {
-        console.error('Ошибка при загрузке Fear & Greed:', err);
-        fgData.innerHTML = 'Ошибка при загрузке.';
-      }
-    }
-
-    // ====================== CoinGecko Global ======================
-    async function fetchCoingeckoGlobal() {
-      const cgGlobalData = document.getElementById('coingeckoGlobalData');
-      try {
-        const resp = await fetch('https://api.coingecko.com/api/v3/global');
-        const data = await resp.json();
-        if (!data.data) {
-          cgGlobalData.innerHTML = 'Не удалось получить глобальные данные.';
-          return;
-        }
-        const d = data.data;
-        cgGlobalData.innerHTML = `
-          <p>Активных криптовалют: <strong>${d.active_cryptocurrencies}</strong></p>
-          <p>Рыночная капитализация (24h): <strong>${
-            (d.total_market_cap.usd || 0).toLocaleString()
-          } USD</strong></p>
-          <p>Объём торгов (24h): <strong>${
-            (d.total_volume.usd || 0).toLocaleString()
-          } USD</strong></p>
-          <p>Биткоин-доминация: <strong>${
-            (d.market_cap_percentage.btc || 0).toFixed(2)
-          }%</strong></p>
-        `;
-      } catch (err) {
-        console.error('Ошибка при загрузке CoinGecko Global:', err);
-        cgGlobalData.innerHTML = 'Ошибка при загрузке.';
-      }
-    }
-
-    // ====================== CoinGecko Events ======================
-    async function fetchCoingeckoEvents() {
-      const cgEventsList = document.getElementById('coingeckoEventsList');
-      try {
-        const resp = await fetch('https://api.coingecko.com/api/v3/events');
-        const data = await resp.json();
-        if (!data.data || !data.data.events) {
-          cgEventsList.innerHTML = 'Нет событий или ошибка.';
-          return;
-        }
-        const events = data.data.events;
-        if (events.length === 0) {
-          cgEventsList.innerHTML = 'Нет ближайших событий.';
-          return;
-        }
-        // Покажем первые 5
-        let html = '';
-        events.slice(0, 5).forEach(evt => {
-          html += `
-            <div class="event-item">
-              <strong>${evt.title}</strong> 
-              <p>${evt.description}</p>
-              <p><a href="${evt.website}" target="_blank">Ссылка</a></p>
-            </div>
-          `;
+        data.asks.forEach(a => {
+          orderBook.asks[a[0]] = parseFloat(a[1]);
         });
-        cgEventsList.innerHTML = html;
+        updateOrderBookDisplay();
       } catch (err) {
-        console.error('Ошибка при загрузке CoinGecko Events:', err);
-        cgEventsList.innerHTML = 'Ошибка при загрузке.';
+        console.error('Ошибка initOrderBook:', err);
       }
     }
 
-    // ====================== ЗАПУСК ВСЕГО ======================
-    // 1) Инициализируем стакан
-    initOrderBook();
+    // ====================== WEBSOCKET: ОБНОВЛЕНИЯ СТАКАНА ======================
+    function startDepthSocket() {
+      const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@depth');
+      ws.onmessage = function(evt) {
+        const data = JSON.parse(evt.data);
+        if (lastUpdateId && data.u <= lastUpdateId) return; // старое
 
-    // 2) Инициализируем график
-    initPriceChart();
+        // Обновляем bids
+        data.b.forEach(bid => {
+          const price = bid[0];
+          const qty = parseFloat(bid[1]);
+          if (qty === 0) {
+            delete orderBook.bids[price];
+          } else {
+            orderBook.bids[price] = qty;
+          }
+        });
+        // Обновляем asks
+        data.a.forEach(ask => {
+          const price = ask[0];
+          const qty = parseFloat(ask[1]);
+          if (qty === 0) {
+            delete orderBook.asks[price];
+          } else {
+            orderBook.asks[price] = qty;
+          }
+        });
 
-    // 3) «Имитация» непрерывного обновления стакана каждые 1 мс (нагрузочно!)
-    setInterval(updateOrderBookDisplay, 1);
+        lastUpdateId = data.u;
+        updateOrderBookDisplay();
+        // Обновляем линии на обоих графиках
+        updateAllOverlays();
+      };
+    }
 
-    // 4) Периодическое обновление сессий
-    updateSessions(); // сразу при загрузке
-    setInterval(updateSessions, 60 * 1000); // раз в минуту
+    // ====================== ЗАПУСК ======================
+    (async function main() {
+      // 1) Инициализируем TradingView
+      initTV1min();
+      initTV5min();
 
-    // 5) Загрузка новостей (CryptoCompare)
-    fetchNews(); 
-    setInterval(fetchNews, 5 * 60 * 1000); // каждые 5 минут
+      // 2) Инициализируем стакан (REST)
+      await initOrderBook();
 
-    // 6) Загрузка Fear & Greed
-    fetchFearGreed();
-    setInterval(fetchFearGreed, 10 * 60 * 1000); // каждые 10 минут
+      // 3) Запускаем WebSocket (Depth)
+      startDepthSocket();
 
-    // 7) Загрузка CoinGecko Global
-    fetchCoingeckoGlobal();
-    setInterval(fetchCoingeckoGlobal, 10 * 60 * 1000); // каждые 10 минут
-
-    // 8) Загрузка CoinGecko Events
-    fetchCoingeckoEvents();
-    setInterval(fetchCoingeckoEvents, 15 * 60 * 1000); // каждые 15 минут
-
-    // ----- КНОПКИ ПАУЗЫ/ВОЗОБНОВЛЕНИЯ -----
-    const pauseBtn = document.getElementById('pauseBtn');
-    const resumeBtn = document.getElementById('resumeBtn');
-
-    pauseBtn.addEventListener('click', () => {
-      isPaused = true;
-      pauseBtn.disabled = true;
-      resumeBtn.disabled = false;
-    });
-    resumeBtn.addEventListener('click', () => {
-      isPaused = false;
-      pauseBtn.disabled = false;
-      resumeBtn.disabled = true;
-      // сразу обновим всё после возобновления
-      updateOrderBookDisplay();
-    });
+      // 4) Периодически обновляем оверлеи (на случай, если график подгружается)
+      setInterval(updateAllOverlays, 3000);
+    })();
   </script>
 </body>
 </html>
