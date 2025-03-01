@@ -1,260 +1,82 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Свечной график Binance + MA-сигналы</title>
-  <!-- Подключаем библиотеки Chart.js и плагин для свечных графиков -->
-  <!-- Порядок важен: сначала Chart.js, затем adapter, затем financial-плагин -->
-  <script src="https://cdn.jsdelivr.net/npm/luxon@3.3.0/build/global/luxon.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.2.0"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@3.0.0/dist/chartjs-chart-financial.min.js"></script>
-
-  <!-- Адаптивная верстка для телефона -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 10px;
-      max-width: 700px; /* чтобы на больших экранах не растягивалось слишком */
-      margin-left: auto;
-      margin-right: auto;
-    }
-    h1, h2 {
-      text-align: center;
-      margin: 10px 0;
-    }
-    #chartContainer {
-      width: 100%;
-      height: 500px; /* высота графика */
-      max-height: 80vh; /* чтобы на телефоне не выходить за экран */
-      margin: 0 auto;
-    }
-    canvas {
-      width: 100% !important;
-      height: 100% !important;
-    }
-    #errorMessage {
-      color: red;
-      text-align: center;
-      margin-top: 5px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scalping Trading Bot</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightweight-charts/3.8.0/lightweight-charts.standalone.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #chart-container { display: flex; justify-content: space-around; }
+        .chart { width: 45%; height: 400px; border: 1px solid #ccc; }
+    </style>
 </head>
 <body>
+    <h1>Скальпинговый торговый бот</h1>
+    <div id="chart-container">
+        <div id="chart-1m" class="chart"></div>
+        <div id="chart-5m" class="chart"></div>
+    </div>
+    <p id="signal"></p>
 
-<h1>Свечной график Binance</h1>
-<h2>MA (10) и MA (50), точки входа</h2>
+    <script>
+        const symbol = 'BTCUSDT';
+        const interval1m = '1m';
+        const interval5m = '5m';
+        const apiUrl = 'https://api.binance.com/api/v3/klines';
+        const wsUrl = `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_1m`;
 
-<div id="chartContainer">
-  <canvas id="chart"></canvas>
-</div>
+        let chart1m = LightweightCharts.createChart(document.getElementById('chart-1m'), { width: 400, height: 400 });
+        let chart5m = LightweightCharts.createChart(document.getElementById('chart-5m'), { width: 400, height: 400 });
 
-<p id="errorMessage"></p>
+        let candleSeries1m = chart1m.addCandlestickSeries();
+        let candleSeries5m = chart5m.addCandlestickSeries();
 
-<script>
-// ===================== ПАРАМЕТРЫ =====================
-const SYMBOL = 'BTCUSDT';    // Торговая пара
-const INTERVAL = '1h';       // Интервал свечей
-const LIMIT = 100;           // Кол-во свечей
-const SHORT_MA_PERIOD = 10;  // Короткая MA
-const LONG_MA_PERIOD = 50;   // Длинная MA
-
-// ===================== 1) ЗАПРОС СВЕЧНЫХ ДАННЫХ С BINANCE =====================
-async function fetchCandles() {
-  const url = `https://api.binance.com/api/v3/klines?symbol=${SYMBOL}&interval=${INTERVAL}&limit=${LIMIT}`;
-  try {
-    const resp = await fetch(url);
-    if (!resp.ok) {
-      throw new Error(`HTTP Error! Status: ${resp.status}`);
-    }
-    const data = await resp.json();
-    // data — массив массивов: [ [openTime, open, high, low, close, volume, closeTime, ...], ...]
-    return data;
-  } catch (err) {
-    console.error('Ошибка при получении свечей:', err);
-    document.getElementById('errorMessage').textContent =
-      'Не удалось загрузить данные: ' + err;
-    return [];
-  }
-}
-
-// ===================== 2) ПРЕОБРАЗОВАНИЕ В ФОРМАТ ДЛЯ CANDLESTICK =====================
-// Chart.js financial plugin ожидает объекты вида:
-// { x: <timestamp>, o: <open>, h: <high>, l: <low>, c: <close> }
-function convertToCandlestick(rawData) {
-  return rawData.map(item => ({
-    x: item[0], // openTime (мс)
-    o: parseFloat(item[1]),
-    h: parseFloat(item[2]),
-    l: parseFloat(item[3]),
-    c: parseFloat(item[4])
-  }));
-}
-
-// ===================== 3) ВЫЧИСЛЕНИЕ СКОЛЬЗЯЩЕЙ СРЕДНЕЙ ПО ЦЕНЕ ЗАКРЫТИЯ =====================
-function calculateMA(candleData, period) {
-  // Возвращаем массив объектов { x, y }, чтобы отобразить как линию
-  const ma = [];
-  for (let i = 0; i < candleData.length; i++) {
-    if (i < period - 1) {
-      ma.push({ x: candleData[i].x, y: null });
-      continue;
-    }
-    let sum = 0;
-    for (let j = i - period + 1; j <= i; j++) {
-      sum += candleData[j].c; // цена закрытия
-    }
-    const avg = sum / period;
-    ma.push({ x: candleData[i].x, y: avg });
-  }
-  return ma;
-}
-
-// ===================== 4) ОПРЕДЕЛЕНИЕ «ТОЧЕК ВХОДА» =====================
-// Сигнал: короткая MA пересекает длинную снизу вверх
-function findEntrySignals(shortMA, longMA) {
-  const signals = [];
-  for (let i = 1; i < shortMA.length; i++) {
-    const prevS = shortMA[i - 1].y;
-    const prevL = longMA[i - 1].y;
-    const currS = shortMA[i].y;
-    const currL = longMA[i].y;
-
-    if (prevS !== null && prevL !== null && currS !== null && currL !== null) {
-      if (prevS <= prevL && currS > currL) {
-        // Пересечение снизу вверх
-        signals.push(i); // сохраняем индекс
-      }
-    }
-  }
-  return signals;
-}
-
-// ===================== 5) СОЗДАНИЕ ГРАФИКА =====================
-let chart;         // Глобальная переменная для Chart.js
-let entrySignals;  // Массив индексов, где есть сигналы
-
-function createChart(candlestickData, shortMA, longMA, signals) {
-  const ctx = document.getElementById('chart').getContext('2d');
-
-  // Если график уже создан — обновляем
-  if (chart) {
-    chart.data.datasets[0].data = candlestickData;
-    chart.data.datasets[1].data = shortMA;
-    chart.data.datasets[2].data = longMA;
-    entrySignals = signals;
-    chart.update();
-    return;
-  }
-
-  // Иначе создаём новый
-  chart = new Chart(ctx, {
-    type: 'candlestick', // тип: свечной график
-    data: {
-      datasets: [
-        {
-          label: 'Свечи',
-          data: candlestickData
-        },
-        {
-          label: `MA(${SHORT_MA_PERIOD})`,
-          type: 'line', // поверх свечей идёт линия
-          data: shortMA,
-          borderColor: 'green',
-          borderWidth: 1.5,
-          pointRadius: 0 // убираем точки
-        },
-        {
-          label: `MA(${LONG_MA_PERIOD})`,
-          type: 'line',
-          data: longMA,
-          borderColor: 'red',
-          borderWidth: 1.5,
-          pointRadius: 0
+        function fetchData(interval, series) {
+            axios.get(apiUrl, {
+                params: { symbol, interval, limit: 50 }
+            }).then(response => {
+                const data = response.data.map(d => ({
+                    time: d[0] / 1000,
+                    open: parseFloat(d[1]),
+                    high: parseFloat(d[2]),
+                    low: parseFloat(d[3]),
+                    close: parseFloat(d[4])
+                }));
+                series.setData(data);
+                console.log(`Загружены данные для ${interval}`, data);
+            }).catch(error => {
+                console.error(`Ошибка загрузки данных для ${interval}:`, error);
+            });
         }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          type: 'time',
-          // Финансовый плагин требует time-скейл с адаптером luxon
-          time: {
-            // unit: 'hour' // Можно указать явно, если нужно
-          }
-        },
-        y: {
-          type: 'linear'
-        }
-      },
-      plugins: {
-        tooltip: {
-          mode: 'index',
-          intersect: false
-        }
-      }
-    }
-  });
 
-  // Сохраняем сигналы, чтобы отрисовать вертикальные линии
-  entrySignals = signals;
+        fetchData(interval1m, candleSeries1m);
+        fetchData(interval5m, candleSeries5m);
 
-  // Плагин для вертикальных линий
-  const verticalLinePlugin = {
-    id: 'verticalLinePlugin',
-    afterDraw: (chart) => {
-      const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
-      ctx.save();
-      ctx.strokeStyle = 'orange';
-      ctx.lineWidth = 2;
+        let ws = new WebSocket(wsUrl);
+        ws.onopen = () => console.log('WebSocket подключен');
+        ws.onerror = error => console.error('Ошибка WebSocket:', error);
 
-      // Рисуем линию в местах сигналов
-      entrySignals.forEach(idx => {
-        // Берём x-координату по времени свечи
-        const xPos = x.getPixelForValue(shortMA[idx].x);
-        ctx.beginPath();
-        ctx.moveTo(xPos, top);
-        ctx.lineTo(xPos, bottom);
-        ctx.stroke();
-      });
+        ws.onmessage = event => {
+            let data = JSON.parse(event.data);
+            let k = data.k;
+            let newCandle = {
+                time: k.t / 1000,
+                open: parseFloat(k.o),
+                high: parseFloat(k.h),
+                low: parseFloat(k.l),
+                close: parseFloat(k.c)
+            };
+            candleSeries1m.update(newCandle);
+            analyzeData(newCandle.close);
+            console.log('Обновление свечи:', newCandle);
+        };
 
-      ctx.restore();
-    }
-  };
-
-  // Регистрируем плагин и обновляем
-  Chart.register(verticalLinePlugin);
-  chart.update();
-}
-
-// ===================== 6) ОСНОВНОЙ ПРОЦЕСС: ЗАГРУЗКА ДАННЫХ И ПОСТРОЕНИЕ ГРАФИКА =====================
-async function main() {
-  const rawData = await fetchCandles();
-  if (rawData.length === 0) return;
-
-  // Преобразуем в формат candlestick
-  const candlestickData = convertToCandlestick(rawData);
-
-  // Считаем две скользящие средние
-  const shortMA = calculateMA(candlestickData, SHORT_MA_PERIOD);
-  const longMA  = calculateMA(candlestickData, LONG_MA_PERIOD);
-
-  // Ищем сигналы (точки входа)
-  const signals = findEntrySignals(shortMA, longMA);
-
-  // Строим/обновляем график
-  createChart(candlestickData, shortMA, longMA, signals);
-
-  // Если нужно автообновление, можно раскомментировать:
-  // setTimeout(main, 30000); // обновление каждые 30 секунд
-}
-
-// Запуск
-main();
-</script>
-</body>
-</html>
+        function analyzeData(price) {
+            let signalElement = document.getElementById('signal');
+            if (price > 45000) {
+                signalElement.innerText = '🔥 ЛОНГ! Цена выше 45000';
+            } else if (price < 44000) {
+                signalElement.innerText = '❄️ ШОРТ! Цена ниже 44000';
+            } else {
