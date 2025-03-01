@@ -2,240 +2,182 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Торговая программа MEXC</title>
+  <title>Простая торговая программа (MEXC)</title>
   <!-- Подключаем Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    h1, h2 {
-      text-align: center;
-    }
-    #chart-container {
-      width: 90%;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    #errorMessage {
-      color: red;
-      text-align: center;
-    }
-  </style>
 </head>
 <body>
-  <h1>Торговая программа (MEXC)</h1>
-  <h2>Точки входа по скользящим средним</h2>
 
-  <div id="chart-container">
-    <canvas id="priceChart"></canvas>
-  </div>
-  <p id="errorMessage"></p>
+<canvas id="chart" width="800" height="400"></canvas>
+<div id="error" style="color:red;"></div>
 
-  <script>
-    // Периоды для скользящих средних
-    const shortMAPeriod = 10;  // Короткий период MA
-    const longMAPeriod = 50;   // Длинный период MA
+<script>
+// Параметры скользящих средних
+const shortPeriod = 10; // короткая MA
+const longPeriod = 50;  // длинная MA
 
-    // Как часто обновлять данные (в миллисекундах)
-    const REFRESH_INTERVAL = 30000; // 30 секунд
+// Функция для запроса данных у MEXC (спот)
+async function fetchData() {
+  // Пример: BTCUSDT, интервал 1 час, 100 свечей
+  const url = 'https://api.mexc.com/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=100';
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP Error ' + resp.status);
+    const data = await resp.json(); // массив массивов
+    return data;
+  } catch (err) {
+    document.getElementById('error').textContent = 'Не удалось загрузить данные: ' + err;
+    return [];
+  }
+}
 
-    // Запрашиваем данные у MEXC (спот)
-    // Документация: https://mxcdevelop.github.io/APIDoc/spot_v3_en/#k-line
-    // Важно: путь /api/v3/klines
-    async function fetchMarketData() {
-      const symbol = 'BTCUSDT';   // Без подчёркиваний
-      const interval = '1h';
-      const limit = 100;
-      const apiUrl = `https://api.mexc.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+// Скользящая средняя по цене закрытия
+function calcMA(data, period) {
+  const result = [];
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1) {
+      result.push(null); // недостаточно точек
+      continue;
+    }
+    let sum = 0;
+    for (let j = i - period + 1; j <= i; j++) {
+      sum += parseFloat(data[j][4]); // индекс 4 = close
+    }
+    result.push(sum / period);
+  }
+  return result;
+}
 
-      try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const result = await response.json();
-        return result; // массив массивов со свечами
-      } catch (error) {
-        console.error('Ошибка при получении данных:', error);
-        document.getElementById('errorMessage').textContent =
-          'Не удалось загрузить данные с биржи: ' + error;
-        return [];
+// Ищем «точки входа»: короткая MA пересекает длинную снизу вверх
+function findEntrySignals(shortMA, longMA) {
+  const signals = [];
+  for (let i = 1; i < shortMA.length; i++) {
+    if (
+      shortMA[i-1] != null && longMA[i-1] != null &&
+      shortMA[i] != null && longMA[i] != null
+    ) {
+      // пересечение снизу вверх
+      if (shortMA[i-1] <= longMA[i-1] && shortMA[i] > longMA[i]) {
+        signals.push(i);
       }
     }
+  }
+  return signals;
+}
 
-    // Считаем скользящую среднюю (MA) по цене закрытия
-    function calculateMA(data, period) {
-      const ma = [];
-      for (let i = 0; i < data.length; i++) {
-        if (i < period - 1) {
-          ma.push(null); // Недостаточно точек для расчёта
-          continue;
-        }
-        let sum = 0;
-        for (let j = i - period + 1; j <= i; j++) {
-          const closePrice = parseFloat(data[j][4]); // Индекс 4 — close
-          sum += closePrice;
-        }
-        ma.push(sum / period);
-      }
-      return ma;
-    }
+let chart;        // будет хранить экземпляр Chart.js
+let entrySignals; // массив индексов для оранжевых линий
+let labels;       // массив подписей (даты)
 
-    // Ищем сигналы: короткая MA пересекает длинную снизу вверх
-    function findEntrySignals(shortMA, longMA) {
-      const signals = [];
-      for (let i = 1; i < shortMA.length; i++) {
-        if (
-          shortMA[i - 1] !== null && longMA[i - 1] !== null &&
-          shortMA[i] !== null && longMA[i] !== null
-        ) {
-          // Условие пересечения
-          if (shortMA[i - 1] <= longMA[i - 1] && shortMA[i] > longMA[i]) {
-            signals.push(i);
-          }
-        }
-      }
-      return signals;
-    }
+// Функция для построения/обновления графика
+function drawChart(closes, shortMA, longMA, signals) {
+  const ctx = document.getElementById('chart').getContext('2d');
+  labels = labels || closes.map((_, i) => i); // на случай, если дат нет
 
-    // Глобальные переменные для Chart.js, чтобы перерисовывать
-    let priceChart = null;
-    let chartData = null;
-    let entrySignals = [];
+  // Если график уже создан — обновляем данные
+  if (chart) {
+    chart.data.datasets[0].data = closes;
+    chart.data.datasets[1].data = shortMA;
+    chart.data.datasets[2].data = longMA;
+    entrySignals = signals;
+    chart.update();
+    return;
+  }
 
-    // Рисуем/обновляем график
-    function updateChart(labels, closingPrices, shortMA, longMA, signals) {
-      const ctx = document.getElementById('priceChart').getContext('2d');
-
-      // Если график уже существует, обновляем данные
-      if (priceChart) {
-        priceChart.data.labels = labels;
-        priceChart.data.datasets[0].data = closingPrices;
-        priceChart.data.datasets[1].data = shortMA;
-        priceChart.data.datasets[2].data = longMA;
-        entrySignals = signals;
-        priceChart.update();
-        return;
-      }
-
-      // Иначе создаём новый график
-      priceChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: 'Цена закрытия',
-              data: closingPrices,
-              borderColor: 'blue',
-              fill: false,
-              tension: 0.1
-            },
-            {
-              label: `MA (${shortMAPeriod})`,
-              data: shortMA,
-              borderColor: 'green',
-              fill: false,
-              tension: 0.1
-            },
-            {
-              label: `MA (${longMAPeriod})`,
-              data: longMA,
-              borderColor: 'red',
-              fill: false,
-              tension: 0.1
-            }
-          ]
+  // Создаём новый
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Цена закрытия',
+          data: closes,
+          borderColor: 'blue',
+          fill: false
         },
-        options: {
-          responsive: true,
-          plugins: {
-            tooltip: {
-              mode: 'index',
-              intersect: false,
-            },
-          },
-          scales: {
-            x: {
-              display: true,
-              title: {
-                display: true,
-                text: 'Время'
-              }
-            },
-            y: {
-              display: true,
-              title: {
-                display: true,
-                text: 'Цена (USDT)'
-              }
-            }
-          }
+        {
+          label: `MA(${shortPeriod})`,
+          data: shortMA,
+          borderColor: 'green',
+          fill: false
+        },
+        {
+          label: `MA(${longPeriod})`,
+          data: longMA,
+          borderColor: 'red',
+          fill: false
         }
-      });
-
-      // Сохраняем сигналы для плагина
-      entrySignals = signals;
-
-      // Плагин для вертикальных линий на сигналах
-      const verticalLinePlugin = {
-        id: 'verticalLinePlugin',
-        afterDraw: (chart) => {
-          const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
-          ctx.save();
-          ctx.strokeStyle = 'orange';
-          ctx.lineWidth = 2;
-          entrySignals.forEach(index => {
-            const xPos = x.getPixelForValue(labels[index]);
-            ctx.beginPath();
-            ctx.moveTo(xPos, top);
-            ctx.lineTo(xPos, bottom);
-            ctx.stroke();
-          });
-          ctx.restore();
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          mode: 'index',
+          intersect: false
         }
-      };
-
-      // Регистрируем плагин и обновляем
-      Chart.register(verticalLinePlugin);
-      priceChart.update();
-    }
-
-    // Основная функция
-    async function loadDataAndDraw() {
-      const rawData = await fetchMarketData();
-      if (rawData.length === 0) {
-        // Если данных нет, ничего не делаем
-        return;
       }
-
-      // Формируем массивы для графика
-      const labels = rawData.map(item => {
-        const time = new Date(item[0]);
-        return time.toLocaleString(); 
-      });
-      const closingPrices = rawData.map(item => parseFloat(item[4]));
-
-      // Скользящие средние
-      const shortMA = calculateMA(rawData, shortMAPeriod);
-      const longMA = calculateMA(rawData, longMAPeriod);
-
-      // Сигналы
-      const signals = findEntrySignals(shortMA, longMA);
-
-      // Обновляем/строим график
-      updateChart(labels, closingPrices, shortMA, longMA, signals);
     }
+  });
 
-    // Загружаем данные сразу при открытии
-    loadDataAndDraw();
+  // Сохраняем индексы точек входа
+  entrySignals = signals;
 
-    // Обновляем каждые 30 секунд (реальное время, без серверов)
-    setInterval(() => {
-      loadDataAndDraw();
-    }, REFRESH_INTERVAL);
-  </script>
+  // Плагин для оранжевых вертикальных линий
+  const verticalLinePlugin = {
+    id: 'verticalLinePlugin',
+    afterDraw: (chart) => {
+      const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
+      ctx.save();
+      ctx.strokeStyle = 'orange';
+      ctx.lineWidth = 2;
+      if (entrySignals) {
+        entrySignals.forEach(idx => {
+          const xPos = x.getPixelForValue(labels[idx]);
+          ctx.beginPath();
+          ctx.moveTo(xPos, top);
+          ctx.lineTo(xPos, bottom);
+          ctx.stroke();
+        });
+      }
+      ctx.restore();
+    }
+  };
+
+  // Регистрируем плагин и обновляем график
+  Chart.register(verticalLinePlugin);
+  chart.update();
+}
+
+// Основная функция — загружаем данные и строим график
+async function main() {
+  const data = await fetchData();
+  if (!data.length) return; // нет данных
+
+  // Преобразуем время открытия в человекочитаемый вид (для подписей оси X)
+  labels = data.map(item => {
+    const d = new Date(item[0]);
+    return d.toLocaleString(); // или другой формат
+  });
+
+  // Цены закрытия
+  const closes = data.map(item => parseFloat(item[4]));
+
+  // Скользящие средние
+  const shortMA = calcMA(data, shortPeriod);
+  const longMA = calcMA(data, longPeriod);
+
+  // Ищем сигналы входа
+  const signals = findEntrySignals(shortMA, longMA);
+
+  // Рисуем график
+  drawChart(closes, shortMA, longMA, signals);
+}
+
+// Запуск
+main();
+</script>
+
 </body>
 </html>
